@@ -43,25 +43,30 @@ local function on_split_lane_state_changed(e)
     end
   end
 
+  -- Grab the non-split entity from the split name and make it the new name.
+  -- If it is not a split entity, make a new from the prototype name
+  local base_name = string.match(proto.name, "^(.*)-split")
+  local new_name = base_name or proto.name .. "-split"
+
   -- Save any filters
+  local new_filter_count = prototypes.entity[new_name].filter_count
   local loader_filter_mode = old.loader_filter_mode
   local filters = {}
   for i=1, proto.filter_count do
     local filter = old.get_filter(i)
     if filter then
-      filters[#filters+1] = filter
-      filters[#filters].index = #filters
+      local j = #filters+1
+      filters[j] = filter
+      filters[j].index = j
+      if j == new_filter_count then
+        break
+      end
     end
   end
 
-
-  local split = (string.match(proto.name, "%-split"))
-  local base_name = string.match(proto.name, "^(.*%-?mdrn%-loader)")
-  local new_name = split and base_name or base_name .. "-split"
-
   local new = {
     create_build_effect_smoke = false,
-    name = split and base_name or base_name .. "-split",
+    name = new_name,
     position = old.position,
     direction = old.direction,
     force = old.force,
@@ -98,16 +103,11 @@ local function on_split_lane_state_changed(e)
   game.get_player(e.player_index).opened = new_entity
 end
 
----Create and display a releative GUI attached to the in-game Loader UI
+---Create and display a relative GUI attached to the in-game Loader UI
 ---@param e EventData.on_gui_opened
 gui.on_gui_opened = function(e)
   local entity = e.entity
   if not entity or not entity.valid then
-    return
-  end
-
-  local name = entity.name ~= "entity-ghost" and entity.name or entity.ghost_name
-  if not string.match(name, "mdrn%-loader") then
     return
   end
 
@@ -118,6 +118,11 @@ gui.on_gui_opened = function(e)
 
   if player.gui.relative.split_lane then
     player.gui.relative.split_lane.destroy()
+  end
+
+  local name = entity.name ~= "entity-ghost" and entity.name or entity.ghost_name
+  if not string.match(name, "mdrn%-loader") then
+    return
   end
 
   if string.match(name, "^chute") then

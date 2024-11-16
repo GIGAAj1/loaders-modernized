@@ -7,27 +7,27 @@ local split_lane_blacklist = {
 }
 
 ---Create the loader entities
----@param prefix string Loader tier prefix
+---@param tier string Tier identifier
+---@param t LMLoaderTemplate Template for the loader
 ---@param stack boolean Is stacking enabled for this loader
----@param next_prefix string Prefix of next tier upgrade
----@param tint Color Color used for belt tier
-local function create_entity(prefix, stack, next_prefix, tint)
-  local base_underground_name = "underground-belt"
-  local name = prefix .. "mdrn-loader"
-  local underground_name = prefix ~= "chute-" and (prefix .. base_underground_name) or base_underground_name
+local function create_entity(tier, t, stack)
+  local name = t.name or tier .. "mdrn-loader"
+  local underground_name = t.underground_name or tier .. "underground-belt"
   local ug_entity = data.raw["underground-belt"][underground_name]
 
+  ---@type data.Loader1x1Prototype
   local entity = {
     type = "loader-1x1",
     name = name,
+    localised_name = t.localised_name or nil,
     flags = {"placeable-player", "placeable-neutral", "player-creation"},
     placeable_by = { item = name, count = 1 },
-    minable = { mining_time = 0.1, result = prefix .. "mdrn-loader" },
+    minable = { mining_time = 0.1, result = name },
     max_health = 170,
     filter_count = 5,
-    next_upgrade = next_prefix and next_prefix .. "mdrn-loader" or nil,
+    next_upgrade = t.next_upgrade,
     corpse = "small-remnants",
-    dying_explosion = base_underground_name .. "-explosion",
+    dying_explosion = ug_entity.dying_explosion or "underground-belt-explosion",
     open_sound = { filename = "__base__/sound/open-close/inserter-open.ogg" },
     close_sound = { filename = "__base__/sound/open-close/inserter-close.ogg" },
     resistances = ug_entity.resistances,
@@ -42,7 +42,7 @@ local function create_entity(prefix, stack, next_prefix, tint)
     max_belt_stack_size = stack and max_belt_stack_size or 1,
     icons = {
       { icon = "__loaders-modernized__/graphics/item/mdrn-loader-icon-base.png" },
-      { icon = "__loaders-modernized__/graphics/item/mdrn-loader-icon-mask.png", tint = tint }
+      { icon = "__loaders-modernized__/graphics/item/mdrn-loader-icon-mask.png", tint = t.tint }
     },
     structure = {
       direction_in = {
@@ -60,7 +60,7 @@ local function create_entity(prefix, stack, next_prefix, tint)
             width = 192,
             height = 192,
             scale = 0.5,
-            tint = tint
+            tint = t.tint
           },
           {
             filename = "__loaders-modernized__/graphics/entity/mdrn-loader-structure-shadow.png",
@@ -89,7 +89,7 @@ local function create_entity(prefix, stack, next_prefix, tint)
             height = 192,
             scale = 0.5,
             y = 192,
-            tint = tint
+            tint = t.tint
           },
           {
             filename = "__loaders-modernized__/graphics/entity/mdrn-loader-structure-shadow.png",
@@ -197,7 +197,7 @@ local function create_entity(prefix, stack, next_prefix, tint)
       {
         icon = "__aai-loaders__/graphics/icons/loader_mask.png",
         icon_size = 64,
-        tint = tint
+        tint = t.tint
       }
     }
     entity.structure = {
@@ -227,7 +227,7 @@ local function create_entity(prefix, stack, next_prefix, tint)
             width = 99,
             height = 117,
             scale = 0.5,
-            tint = tint
+            tint = t.tint
           }
         }
       },
@@ -260,7 +260,7 @@ local function create_entity(prefix, stack, next_prefix, tint)
             height = 117,
             scale = 0.5,
             y = 117,
-            tint = tint
+            tint = t.tint
           }
         }
       },
@@ -309,22 +309,29 @@ local function create_entity(prefix, stack, next_prefix, tint)
     entity.heating_energy = ug_entity.heating_energy
   end
 
+  --[[
   data:extend{
     entity
   }
+  ]]
 
-  if not split_lane_blacklist[prefix] then
-    local split_entity = table.deepcopy(entity)
+  local split_entity
+  if not split_lane_blacklist[tier] then
+    split_entity = table.deepcopy(entity)
     split_entity.name = name .. "-split"
     split_entity.filter_count = 2
     split_entity.per_lane_filters = true
     split_entity.factoriopedia_alternative = name
     split_entity.deconstruction_alternative = name
     split_entity.next_upgrade = entity.next_upgrade and entity.next_upgrade .. "-split" or nil
+    --[[
     data:extend{
       split_entity
     }
+    ]]
   end
+
+  return {entity, split_entity}
 
 end -- create_entity()
 
